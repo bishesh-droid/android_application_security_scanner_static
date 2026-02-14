@@ -7,13 +7,11 @@ This tool is a static analysis security scanner specifically designed for Androi
 *   **APK Decompilation:** Automatically unpacks and decompiles the Android APK file to access its components.
 *   **Manifest Analysis:** Scans the `AndroidManifest.xml` file for security misconfigurations, such as:
     *   `android:debuggable="true"` being enabled.
-    *   Improperly exported components (Activities, Services, Broadcast Receivers, Content Providers) that could lead to unauthorized access.
-    *   Excessive or dangerous permissions requested.
-*   **Bytecode Analysis:** Examines the application's bytecode for common coding vulnerabilities, such as:
-    *   **Hardcoded Secrets:** Detection of API keys, passwords, or other sensitive information directly embedded in the code.
-    *   **Insecure Data Storage:** Identifying potential insecure storage practices for sensitive user data.
+    *   Exported components (Activities, Services, Broadcast Receivers, Content Providers) with intent filters.
+    *   Permissions requested by the application.
+*   **Bytecode Analysis:** Examines the application's bytecode (including multi-dex APKs) for common coding vulnerabilities, such as:
+    *   **Hardcoded Secrets:** Detection of API keys, passwords, tokens, or other sensitive information directly embedded in the code.
     *   **Insecure Communication:** Flags the use of unencrypted HTTP connections for data transfer, making the app vulnerable to Man-in-the-Middle attacks.
-*   **Vulnerability Reporting:** Generates a clear report detailing the identified vulnerabilities, their severity, and recommendations for remediation.
 
 ## How it Works
 
@@ -21,22 +19,17 @@ Static Application Security Testing (SAST) for Android apps involves examining t
 
 1.  **APK Input:** You provide the scanner with an Android APK file. This is the package format used to distribute and install Android apps.
 2.  **Decompilation:** The tool first "decompiles" the APK. This process extracts all the components of the app, including its resources, libraries, and the compiled code (Dalvik bytecode, typically in `classes.dex` files). It also reconstructs the `AndroidManifest.xml` file, which declares the app's essential characteristics and permissions.
-3.  **Manifest Analysis:** The `AndroidManifest.xml` is a critical security boundary. The scanner examines this file for common misconfigurations. For example, if an app component is "exported," it means other apps can interact with it, which can be a vulnerability if not handled carefully.
-4.  **Bytecode Analysis:** The tool then analyzes the app's decompiled code. It searches for specific patterns or coding practices that are known to be insecure. For instance:
+3.  **Manifest Analysis:** The `AndroidManifest.xml` is a critical security boundary. The scanner examines this file for common misconfigurations. For example, if an app component has intent filters, it is considered exported and other apps can interact with it, which can be a vulnerability if not handled carefully.
+4.  **Bytecode Analysis:** The tool then analyzes all of the app's DEX files (supporting multi-dex APKs). It searches for specific patterns or coding practices that are known to be insecure. For instance:
     *   It looks for strings that resemble API keys or passwords that are directly written into the code.
     *   It checks if the app is making network requests using unencrypted `HTTP` instead of secure `HTTPS`.
-    *   It identifies if the app is storing sensitive data in easily accessible locations.
-5.  **Reporting:** Finally, all the potential security flaws found during the manifest and bytecode analysis are compiled into a report, helping you understand the security posture of the Android application.
+5.  **Reporting:** All the potential security flaws found during the manifest and bytecode analysis are printed to the console.
 
 ## Key Vulnerabilities Detected
 
-This scanner is designed to identify several common Android security vulnerabilities, including but not limited to:
-
-*   **Insecure Data Storage:** Storing sensitive information in world-readable files, shared preferences without proper protection, or external storage.
 *   **Hardcoded Secrets:** Embedding API keys, passwords, encryption keys, or other sensitive credentials directly in the application's source code.
 *   **Insecure Communication:** Using unencrypted protocols (like plain HTTP) for transmitting sensitive data, making it vulnerable to eavesdropping.
-*   **Improper Intent Handling:** Exported activities, services, or broadcast receivers that do not properly validate incoming intents, allowing malicious apps to trigger sensitive operations.
-*   **Weak Cryptography:** Using outdated, broken, or improperly implemented cryptographic algorithms.
+*   **Exported Components:** Activities, services, broadcast receivers, or content providers with intent filters that can be accessed by other apps on the device.
 *   **Debuggable Applications:** Detecting `android:debuggable="true"` in the manifest, which can expose an application to reverse engineering and exploitation.
 
 ## System Requirements
@@ -76,29 +69,30 @@ This scanner is designed to identify several common Android security vulnerabili
 
 ## Usage
 
-The tool is controlled via the `android-scanner` command-line utility.
-
-### Scan an APK File
-To perform a static security scan on an Android APK file:
+### Using the installed command
+After installing with `pip install -e .`, you can run:
 ```bash
-android-scanner scan --apk /path/to/your/app.apk
+android-scanner /path/to/your/app.apk
 ```
-*   `--apk`: Path to the Android Application Package (`.apk`) file.
 
-The tool will then output a report of identified vulnerabilities and potential security issues directly to the console.
+### Running directly
+```bash
+python src/scanner.py /path/to/your/app.apk
+```
+
+The tool will output a report of identified vulnerabilities and potential security issues directly to the console.
 
 ## Project Structure
 
 ```
 .
-├── android_application_security_scanner_static/
-│   ├── __init__.py
-│   ├── main.py          # Main command-line interface and entry point
-│   └── scanner.py       # Core logic for APK decompilation and vulnerability scanning
+├── src/
+│   └── scanner.py       # Core logic for APK analysis and vulnerability scanning
 ├── tests/
-│   └── test_scanner.py
-├── requirements.txt
-├── setup.py
+│   ├── __init__.py
+│   └── test_scanner.py  # Unit tests with mocked androguard
+├── requirements.txt     # Python dependencies (androguard)
+├── setup.py             # Package setup with console_scripts entry point
 └── README.md
 ```
 
